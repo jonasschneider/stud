@@ -63,6 +63,7 @@ struct __stud_config {
     int TCP_KEEPALIVE_TIME;
     int DAEMONIZE;
     int PREFER_SERVER_CIPHERS;
+    char *NPN_ADVERTISED_PROTOS;
 };
 
 typedef struct __stud_config stud_config;

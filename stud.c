@@ -917,6 +917,12 @@ static void end_handshake(proxystate *ps) {
     ev_io_stop(loop, &ps->ev_r_handshake);
     ev_io_stop(loop, &ps->ev_w_handshake);
 
+    const unsigned char *next_proto = 0;
+    unsigned int next_proto_len;
+
+    SSL_get0_next_proto_negotiated(ps->ssl, &next_proto, &next_proto_len);
+    printf("negotiated next proto: %s", next_proto);
+
     /* Disable renegotiation (CVE-2009-3555) */
     if (ps->ssl->s3) {
         ps->ssl->s3->flags |= SSL3_FLAGS_NO_RENEGOTIATE_CIPHERS;
@@ -1110,6 +1116,42 @@ static void ssl_write(struct ev_loop *loop, ev_io *w, int revents) {
     }
 }
 
+
+#define NEXT_PROTO_STRING "\x06spdy/2\x08http/1.1\x08http/1.0"
+#define NEXT_PROTO_MAXLENGTH 256
+static char next_proto_string[NEXT_PROTO_MAXLENGTH] = {0};
+
+static void parse_npn_string() {
+    unsigned int idx = 0;
+    char * proto;
+    proto = strtok (CONFIG->NPN_ADVERTISED_PROTOS,",");
+    while (proto != NULL)
+    {
+        next_proto_string[idx++] = (uint8_t)strlen(proto);
+        memcpy(next_proto_string+idx, proto, strlen(proto));
+        idx += strlen(proto);
+        printf ("%s\n",proto);
+        proto = strtok (NULL, ",");
+    }
+    next_proto_string[idx] = '\0';
+}
+
+int ssl_set_npn_callback(SSL *s,
+                         const unsigned char **data,
+                         unsigned int *len,
+                         void *arg) {
+    (void)(s);
+    (void)(arg);
+
+    printf("SSL NPN callback: advertising protocols.\n");
+    if(next_proto_string[0] == 0)
+        parse_npn_string();
+
+    *data = (const unsigned char *) next_proto_string;
+    *len = strlen(next_proto_string);
+    return SSL_TLSEXT_ERR_OK;
+}
+
 /* libev read handler for the bound socket.  Socket is accepted,
  * the proxystate is allocated and initalized, and we're off the races
  * connecting to the backend */
@@ -1170,6 +1212,10 @@ static void handle_accept(struct ev_loop *loop, ev_io *w, int revents) {
     SSL_set_accept_state(ssl);
     SSL_set_fd(ssl, client);
 
+
+    SSL_CTX_set_next_protos_advertised_cb(ctx,
+                                          ssl_set_npn_callback, NULL);
+
     proxystate *ps = (proxystate *)malloc(sizeof(proxystate));
 
     ps->fd_up = client;
@@ -1208,6 +1254,7 @@ static void handle_accept(struct ev_loop *loop, ev_io *w, int revents) {
 
     start_handshake(ps, SSL_ERROR_WANT_READ); /* for client-first handshake */
 }
+
 
 
 static void check_ppid(struct ev_loop *loop, ev_timer *w, int revents) {

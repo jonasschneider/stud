@@ -46,6 +46,7 @@
 #define CFG_WRITE_IP "write-ip"
 #define CFG_WRITE_PROXY "write-proxy"
 #define CFG_PEM_FILE "pem-file"
+#define CFG_NPN_ADVERTISED_PROTOS "npn-advertised-protos"
 
 #ifdef USE_SHARED_CACHE
   #define CFG_SHARED_CACHE "shared-cache"
@@ -539,6 +540,11 @@ void config_param_validate (char *k, char *v, stud_config *cfg, char *file, int 
       config_assign_str(&cfg->CIPHER_SUITE, v);
     }
   }
+  else if (strcmp(k, CFG_NPN_ADVERTISED_PROTOS) == 0) {
+    if (v != NULL && strlen(v) > 0) {
+      config_assign_str(&cfg->NPN_ADVERTISED_PROTOS, v);
+    }
+  }
   else if (strcmp(k, CFG_SSL_ENGINE) == 0) {
     if (v != NULL && strlen(v) > 0) {
       config_assign_str(&cfg->ENGINE, v);
@@ -854,6 +860,10 @@ void config_print_usage_fd (char *prog, stud_config *cfg, FILE *out) {
   fprintf(out, "  -c  --ciphers=SUITE         Sets allowed ciphers (Default: \"%s\")\n", config_disp_str(cfg->CIPHER_SUITE));
   fprintf(out, "  -e  --ssl-engine=NAME       Sets OpenSSL engine (Default: \"%s\")\n", config_disp_str(cfg->ENGINE));
   fprintf(out, "  -O  --prefer-server-ciphers Prefer server list order\n");
+  fprintf(out, "      --npn-advertised-protos <protos>\n");
+  fprintf(out, "                              Provide a comma-separated list like spdy/2,http/1.1\n");
+  fprintf(out, "                              to use SSL Next Protocol Negotiation with these protocols.\n");
+
   fprintf(out, "\n");
   fprintf(out, "SOCKET:\n");
   fprintf(out, "\n");
@@ -903,9 +913,11 @@ void config_print_usage_fd (char *prog, stud_config *cfg, FILE *out) {
   fprintf(out, "                             address in 4 (IPv4) or 16 (IPv6) octets little-endian\n");
   fprintf(out, "                             to backend before the actual data\n");
   fprintf(out, "                             (Default: %s)\n", config_disp_bool(cfg->WRITE_IP_OCTET));
-  fprintf(out, "      --write-proxy          Write HaProxy's PROXY (IPv4 or IPv6) protocol line\n" );
-  fprintf(out, "                             before actual data\n");
   fprintf(out, "                             (Default: %s)\n", config_disp_bool(cfg->WRITE_PROXY_LINE));
+  fprintf(out, "      --write-ip             Write 1 octet with the IP family followed by the IP\n");
+  fprintf(out, "                             address in 4 (IPv4) or 16 (IPv6) octets little-endian\n");
+  fprintf(out, "                             to backend before the actual data\n");
+
   fprintf(out, "\n");
   fprintf(out, "  -t  --test                 Test configuration and exit\n");
   fprintf(out, "  -V  --version              Print program version and exit\n");
@@ -1118,6 +1130,7 @@ void config_parse_cli(int argc, char **argv, stud_config *cfg) {
     { CFG_FRONTEND, 1, NULL, 'f' },
     { CFG_WORKERS, 1, NULL, 'n' },
     { CFG_BACKLOG, 1, NULL, 'B' },
+    { CFG_NPN_ADVERTISED_PROTOS, 1, NULL, 'N' },
 #ifdef USE_SHARED_CACHE
     { CFG_SHARED_CACHE, 1, NULL, 'C' },
     { CFG_SHARED_CACHE_LISTEN, 1, NULL, 'U' },
@@ -1145,7 +1158,7 @@ void config_parse_cli(int argc, char **argv, stud_config *cfg) {
     int option_index = 0;
     c = getopt_long(
       argc, argv,
-      "c:e:Ob:f:n:B:C:U:P:M:k:r:u:g:qstVh",
+      "c:e:Ob:f:n:B:N:C:U:P:M:k:r:u:g:qstVh",
       long_options, &option_index
     );
 
@@ -1220,6 +1233,9 @@ void config_parse_cli(int argc, char **argv, stud_config *cfg) {
         break;
       case 's':
         config_param_validate(CFG_SYSLOG, CFG_BOOL_ON, cfg, NULL, 0);
+        break;
+      case 'N':
+        config_param_validate(CFG_NPN_ADVERTISED_PROTOS, optarg, cfg, NULL, 0);
         break;
       case 't':
         test_only = 1;
