@@ -909,13 +909,13 @@ void config_print_usage_fd (char *prog, stud_config *cfg, FILE *out) {
   fprintf(out, "\n");
   fprintf(out, "OTHER OPTIONS:\n");
   fprintf(out, "      --daemon               Fork into background and become a daemon (Default: %s)\n", config_disp_bool(cfg->DAEMONIZE));
-  fprintf(out, "      --write-proxy          Write HaProxy's PROXY (IPv4 or IPv6) protocol line\n" );
-  fprintf(out, "                             before actual data\n");
-  fprintf(out, "                             (Default: %s)\n", config_disp_bool(cfg->WRITE_PROXY_LINE));
   fprintf(out, "      --write-ip             Write 1 octet with the IP family followed by the IP\n");
   fprintf(out, "                             address in 4 (IPv4) or 16 (IPv6) octets little-endian\n");
   fprintf(out, "                             to backend before the actual data\n");
-
+  fprintf(out, "                             (Default: %s)\n", config_disp_bool(cfg->WRITE_IP_OCTET));
+  fprintf(out, "      --write-proxy          Write HaProxy's PROXY (IPv4 or IPv6) protocol line\n" );
+  fprintf(out, "                             before actual data\n");
+  fprintf(out, "                             (Default: %s)\n", config_disp_bool(cfg->WRITE_PROXY_LINE));
   fprintf(out, "\n");
   fprintf(out, "  -t  --test                 Test configuration and exit\n");
   fprintf(out, "  -V  --version              Print program version and exit\n");
