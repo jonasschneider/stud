@@ -1117,7 +1117,6 @@ static void ssl_write(struct ev_loop *loop, ev_io *w, int revents) {
 }
 
 
-#define NEXT_PROTO_STRING "\x06spdy/2\x08http/1.1\x08http/1.0"
 #define NEXT_PROTO_MAXLENGTH 256
 static char next_proto_string[NEXT_PROTO_MAXLENGTH] = {0};
 
@@ -1254,7 +1253,6 @@ static void handle_accept(struct ev_loop *loop, ev_io *w, int revents) {
 
     start_handshake(ps, SSL_ERROR_WANT_READ); /* for client-first handshake */
 }
-
 
 
 static void check_ppid(struct ev_loop *loop, ev_timer *w, int revents) {
